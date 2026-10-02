@@ -129,12 +129,12 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
 </head>
 <body class="${bodyClass || ''}">
 <a class="skip" href="#main">Skip to content</a>
-<div class="ribbon"><span>Membership is $1 a month.</span> <span>10% of all proceeds go to local women's organizations.</span> <a href="/membership/">Become a founding member</a></div>
+<div class="ribbon"><span>A new issue every Thursday. Membership is $1 a month.</span> <span>10% of all proceeds go to local women's organizations.</span> <a href="/membership/">Become a founding member</a></div>
 <header class="mast">
   <a class="logo" href="/" aria-label="${NAME} home">${BUTTERFLY}<span class="logo-t"><em>Bucks County</em> Woman</span></a>
   <p class="tag">${TAGLINE}</p>
-  <details class="navwrap"><summary>Sections</summary><nav class="nav" aria-label="Sections">${NAV.map((s) => `<a href="${catUrl(CAT[s])}">${CAT[s].name}</a>`).join('')}<a href="/events/">Events</a><a href="/directory/">Directory</a><a class="pill" href="/app/">Community App</a></nav></details>
-  <nav class="nav desk" aria-label="Sections">${NAV.map((s) => `<a href="${catUrl(CAT[s])}">${CAT[s].name}</a>`).join('')}<a href="/events/">Events</a><a href="/directory/">Directory</a><a class="pill" href="/app/">Community App</a></nav>
+  <details class="navwrap"><summary>Sections</summary><nav class="nav" aria-label="Sections">${NAV.map((s) => `<a href="${catUrl(CAT[s])}">${CAT[s].name}</a>`).join('')}<a href="/issues/">Issues</a><a href="/events/">Events</a><a href="/directory/">Directory</a><a class="pill" href="/app/">Community App</a></nav></details>
+  <nav class="nav desk" aria-label="Sections">${NAV.map((s) => `<a href="${catUrl(CAT[s])}">${CAT[s].name}</a>`).join('')}<a href="/issues/">Issues</a><a href="/events/">Events</a><a href="/directory/">Directory</a><a class="pill" href="/app/">Community App</a></nav>
 </header>
 <main id="main">
 ${body}
@@ -175,7 +175,7 @@ async function build() {
     if (!CAT[meta.category]) meta.category = 'out-and-about';
     const cats = [meta.category, ...(meta.categories || []), ...(EXTRA[meta.slug] || [])];
     const image = meta.image ? { url: meta.image, alt: meta.imageAlt || meta.title, credit: meta.imageCredit || '', creditUrl: meta.imageCreditUrl || '#' } : null;
-    return { ...meta, cats, body, url: `/${meta.slug}/`, image };
+    return { ...meta, cats, body, url: `/${meta.slug}/`, image, issue: meta.issue || '2026-10-01' };
   }).sort((a, b) => (b.date + b.slug).localeCompare(a.date + a.slug) * 1 || 0);
   // newest first, health guide leads on equal dates
   articles.sort((a, b) => b.date.localeCompare(a.date) || (a.slug === 'bucks-county-womens-health-care-guide' ? -1 : b.slug === 'bucks-county-womens-health-care-guide' ? 1 : 0));
@@ -246,8 +246,19 @@ async function build() {
     out(`category/${c.slug}/index.html`, layout({ title: c.name, description: c.blurb, urlPath: `/category/${c.slug}/`, body: `${pageHero(c.name, c.blurb)}<div class="wrap">${inner}</div>` }));
   }
 
+  // ----- weekly issues -----
+  const idir = path.join(ROOT, 'content/issues');
+  const issues = (fs.existsSync(idir) ? fs.readdirSync(idir) : []).filter((f) => f.endsWith('.html')).map((f) => { const { meta, body } = parse(path.join(idir, f)); return { ...meta, body, url: `/issue/${meta.date}/`, articles: articles.filter((a) => a.issue === meta.date) }; }).sort((a, b) => b.date.localeCompare(a.date));
+  for (const is of issues) {
+    const cover = pick(['fall', 'flowers', 'river'], 'bucks');
+    out(`issue/${is.date}/index.html`, layout({ title: `Issue ${is.number}: ${is.title}`, description: is.dek, urlPath: is.url, image: cover && cover.url, body: `<header class="page-head opal"><div class="wrap narrow">${BUTTERFLY}<p class="eyebrow">Issue ${is.number} &middot; Week of ${fmtDate(is.date)}</p><h1>${esc(is.title)}</h1><p class="dek">${esc(is.dek)}</p></div></header><figure class="hero-fig wrap">${imgTag(cover, '', true)}<figcaption>${esc(cover ? cover.alt : '')}. ${credit(cover)}</figcaption></figure><div class="wrap narrow prose"><h2>From the editor</h2>${is.body}</div><section class="wrap"><h2 class="sec">In this issue</h2><div class="grid3">${is.articles.map((a) => card(a)).join('')}</div><p class="center" style="margin-top:28px"><a class="btn" href="/membership/">Get every issue for $1 a month</a></p></section>` }));
+  }
+  out('issues/index.html', layout({ title: 'Every Issue', description: 'The archive of Bucks County Woman, a new issue every Thursday.', urlPath: '/issues/', body: `${pageHero('Every Issue', 'A new issue of Bucks County Woman comes out every Thursday.')}<div class="wrap narrow"><ul class="events">${issues.map((is) => `<li class="card ev"><div class="ev-date"><b>${is.number}</b><span>Issue</span></div><div><h3><a href="${is.url}">${esc(is.title)}</a></h3><p>${esc(is.dek)}</p><p class="meta">Week of ${fmtDate(is.date)} &middot; ${is.articles.length} stories</p></div></li>`).join('')}</ul></div>` }));
+  const cur = issues[0];
+
   // ----- home -----
-  const [lead, ...rest] = articles;
+  const lead0 = cur && cur.articles.length ? cur.articles : articles;
+  const [lead, ...rest] = lead0;
   const heroIm = pick(['river', 'fall', 'nature'], 'bucks');
   const tiles = CATS.map((c) => { const im = pick(c.tags, ['meetups', 'her-story', 'business', 'homemaking', 'health'].includes(c.slug) ? 'women' : 'bucks'); return `<a class="tile opal" href="${catUrl(c)}">${imgTag(im)}<span><b>${c.name}</b><small>${esc(c.blurb)}</small></span></a>`; }).join('');
   const mosaic = [pick(['friends'], 'women'), pick(['bridge'], 'bucks'), pick(['disability'], 'women'), pick(['flowers'], 'bucks'), pick(['older'], 'women'), pick(['river'], 'bucks'), pick(['lgbtq'], 'women'), pick(['park'], 'bucks'), pick(['business'], 'women'), pick(['town'], 'bucks'), pick(['mother'], 'women'), pick(['farm'], 'bucks')].filter(Boolean);
@@ -264,7 +275,7 @@ async function build() {
   </div>
 </section>
 <section class="wrap pledge"><div class="card pledge-in"><div><b>10%</b><span>of all proceeds go to local women's organizations</span></div><div><b>100%</b><span>local to Bucks County</span></div><div><b>$1</b><span>a month for the whole magazine</span></div><div><b>Every</b><span>woman welcome, at every age</span></div></div></section>
-<section class="wrap"><h2 class="sec">This month</h2>${lead ? card(lead, true) : ''}<div class="grid3">${rest.map((a) => card(a)).join('')}</div></section>
+<section class="wrap"><h2 class="sec">${cur ? `Issue ${cur.number}: ${esc(cur.title)}` : 'This week'}</h2>${cur ? `<p class="issue-line">Week of ${fmtDate(cur.date)}. <a href="${cur.url}">Read the editor's letter and the full issue</a> &middot; <a href="/issues/">Every issue</a></p>` : ''}${lead ? card(lead, true) : ''}<div class="grid3">${rest.map((a) => card(a)).join('')}</div></section>
 <section class="wrap"><h2 class="sec">Find your section</h2><div class="tiles">${tiles}</div></section>
 <section class="band opal"><div class="wrap two">
   <div><h2>Help is closer than you think</h2><p>We keep one page of verified phone numbers and addresses for the moments that cannot wait: crisis lines, shelter, legal aid, postpartum support, and services for LGBTQIA+ women, older women and women with disabilities.</p><p><a class="btn" href="/resources/">Resources &amp; Safe Spaces</a> <a class="btn ghost" href="/category/care-near-you/">Care Near You</a></p></div>
@@ -280,7 +291,7 @@ async function build() {
   out('404.html', layout({ title: 'Page not found', description: 'That page is not here.', urlPath: '/404', body: `${pageHero('We could not find that page', 'It may have moved. The front page has everything new.')}<p class="center"><a class="btn" href="/">Back to the front page</a></p>` }));
 
   // ----- machine files -----
-  const urls = ['/', '/events/', '/directory/', '/app/', ...pageSlugs.map((s) => `/${s}/`), ...CATS.filter((c) => !c.pageOnly).map((c) => `/category/${c.slug}/`), ...articles.map((a) => a.url)];
+  const urls = ['/', '/issues/', ...issues.map((i) => i.url), '/events/', '/directory/', '/app/', ...pageSlugs.map((s) => `/${s}/`), ...CATS.filter((c) => !c.pageOnly).map((c) => `/category/${c.slug}/`), ...articles.map((a) => a.url)];
   const today = new Date().toISOString().slice(0, 10);
   out('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...new Set(urls)].map((u) => { const a = articles.find((x) => x.url === u); return `<url><loc>${SITE}${u}</loc><lastmod>${a ? a.date : today}</lastmod></url>`; }).join('\n')}\n</urlset>\n`);
   out('robots.txt', `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nSitemap: ${SITE}/sitemap.xml\n`);

@@ -170,3 +170,5 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);outline:0}
 .copy{margin-top:28px;font-size:.82rem;border-top:1px solid rgba(255,255,255,.15);padding-top:18px}
 @media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.issue-line{margin:-8px 0 20px;color:var(--muted)}
