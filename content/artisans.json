@@ -1,0 +1,10 @@
+[
+  {
+    "sample": true,
+    "name": "Your work, shown here",
+    "medium": "Painting, pottery, jewelry, fiber, print",
+    "town": "Bucks County",
+    "bio": "This is how a featured piece appears online and in print. The code beside it takes a reader straight to the page where she can buy from you.",
+    "buyUrl": "https://buckscountywoman.onrender.com/artisans/"
+  }
+]

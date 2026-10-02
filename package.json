@@ -1,0 +1,19 @@
+{
+  "name": "buckscountywoman",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bucks County Woman magazine site and community app",
+  "main": "server.js",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "compression": "^1.7.4",
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "pg-mem": "^3.0.5",
+    "qrcode": "^1.5.3"
+  }
+}
